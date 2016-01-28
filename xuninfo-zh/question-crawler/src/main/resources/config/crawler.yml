@@ -1,4 +1,4 @@
 crawler: 
- url: http://120.25.75.125/html/index.html
+ url: https://www.zhihu.com/topic/19776749/questions?page=1
  limit: 2014-1-27
  

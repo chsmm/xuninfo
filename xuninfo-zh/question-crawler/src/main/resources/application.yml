@@ -1,9 +1,9 @@
 spring:
  redis:
   database: db0
-  host: 120.25.75.125
+  host: 
   port: 6379
-  password: xuninfo12306
+  password: 
   pool:
    max-idle: 30
    min-idle: 5
