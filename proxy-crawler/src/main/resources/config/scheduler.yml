@@ -1,0 +1,4 @@
+scheduler:
+ cron: 0 */1 * * * ?
+ schedulerClassName: proxyCrawler
+ schedulerMethod: doStart

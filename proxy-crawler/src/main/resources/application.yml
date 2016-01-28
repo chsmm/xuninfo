@@ -1,0 +1,12 @@
+spring:
+ redis:
+  database: db0
+  host: 120.25.75.125
+  port: 6379
+  password: xuninfo12306
+  pool:
+   max-idle: 30
+   min-idle: 5
+   max-active: 30
+   max-wait: -1
+   
