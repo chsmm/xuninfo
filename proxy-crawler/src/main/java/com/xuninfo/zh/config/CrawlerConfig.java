@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 public class CrawlerConfig {
 	
 	private List<String> urls;
+	
+	private HttpConfig httpConfig;
 
 	public List<String> getUrls() {
 		return urls;
@@ -17,7 +19,16 @@ public class CrawlerConfig {
 	public void setUrls(List<String> urls) {
 		this.urls = urls;
 	}
+
 	
+	public HttpConfig getHttpConfig() {
+		return httpConfig;
+	}
+
+	public void setHttpConfig(HttpConfig httpConfig) {
+		this.httpConfig = httpConfig;
+	}
+
 	
 	
 	

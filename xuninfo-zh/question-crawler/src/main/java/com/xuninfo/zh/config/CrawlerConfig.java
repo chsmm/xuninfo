@@ -9,6 +9,8 @@ public class CrawlerConfig {
 	private String url;
 	
 	private String limit;
+	
+	private HttpConfig httpConfig;
 
 	public String getUrl() {
 		return url;
@@ -25,4 +27,13 @@ public class CrawlerConfig {
 	public void setLimit(String limit) {
 		this.limit = limit;
 	}
+
+	public HttpConfig getHttpConfig() {
+		return httpConfig;
+	}
+
+	public void setHttpConfig(HttpConfig httpConfig) {
+		this.httpConfig = httpConfig;
+	}
+	
 }

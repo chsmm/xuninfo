@@ -3,7 +3,8 @@
   <groupId>com.xuninfo</groupId>
   <artifactId>xuninfo</artifactId>
   <version>1.0.0-SNAPSHOT</version>
-  <name>xuninfo</name>
+  <name>${project.artifactId}</name>
+  <packaging>pom</packaging>
   <description>xuninfo project</description>
   <url>http://www.xuninfo.com</url>
   <modules>

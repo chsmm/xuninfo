@@ -1,0 +1,7 @@
+strategy:
+ processorStrategys:
+  http://ip.qiaodm.com/: com.xuninfo.zh.crawler.processor.support.QiaodmProcessorStrategy
+  http://www.ip3366.net/free/: com.xuninfo.zh.crawler.processor.support.Ip3366ProcessorStrategy
+  http://www.kuaidaili.com/: com.xuninfo.zh.crawler.processor.support.KuaidailiProcessorStrategy
+  http://www.sslproxies.org/: com.xuninfo.zh.crawler.processor.support.SslproxiesProcessorStrategy
+  http://www.cool-proxy.net/proxies/http_proxy_list/sort:update_time/direction:desc/page:1: com.xuninfo.zh.crawler.processor.support.CoolProxyProcessorStrategy

@@ -26,7 +26,7 @@ public class QuestionsCrawler extends AbstractCrawler {
 	protected void doInternalStart() {
 		Request request = new Request(crawlerConfig.getUrl());
 		scheduler.push(request, this);
-		downloader.download(null, null);
+		downloader.download(null, this);
 		pageProcessor.process(null);
 	}
 

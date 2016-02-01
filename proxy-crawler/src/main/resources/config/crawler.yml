@@ -1,3 +1,9 @@
 crawler: 
- urls: http://www.xici.net.co/,http://www.kuaidaili.com/,http://www.3464.com/data/Proxy/http/,http://www.site-digger.com/html/articles/20110516/proxieslist.html,http://www.cz88.net/proxy/,http://www.youdaili.net/,http://ip.qiaodm.com/,http://www.cn379.cn/,http://www.66ip.cn/,http://www.haodailiip.com/,http://ip.izmoney.com/,http://proxy.goubanjia.com/,http://www.nianshao.me/,http://www.proxy.com.ru/,http://pachong.org/anonymous.html,http://www.56ads.com/proxyip/,http://ip.baizhongsou.com/,http://www.cool-proxy.net/proxies/http_proxy_list/sort:score/direction:desc,http://proxylist.hidemyass.com/2#listable,http://www.sslproxies.org/,http://www.proxy4free.com/list/webproxy1.html,https://incloak.com/proxy-list/,https://nordvpn.com/free-proxy-list/,http://proxy-list.org/english/index.php,http://www.samair.ru/proxy/,http://www.socks-proxy.net/,http://free-proxy-list.net/,http://www.xroxy.com/proxylist.htm,http://www.mrhinkydink.com/proxies.htm,http://free-proxy.cz/en/
- 
+ urls: http://www.ip3366.net/free/,http://ip.qiaodm.com/,http://www.kuaidaili.com/,http://www.sslproxies.org/,http://free-proxy.cz/en/,http://www.cool-proxy.net/proxies/http_proxy_list/sort:update_time/direction:desc/page:1,http://www.cz88.net/proxy/,http://www.youdaili.net/,http://ip.izmoney.com/,http://free-proxy-list.net/,http://www.mrhinkydink.com/proxies.htm,http://proxy.goubanjia.com/,http://www.socks-proxy.net/,http://www.samair.ru/proxy/,http://www.xroxy.com/proxylist.htm,http://www.66ip.cn/,http://www.site-digger.com/html/articles/20110516/proxieslist.html,http://www.cn379.cn/
+ httpConfig:
+  connectTimeout: 3000
+  connectMaxTotal: 50
+  encoding: utf-8
+  proxy: false
+  retryStatusCode: 500,504
+  giveUpStatusCode: 400,401.402,403,404,405,406,407,412,413,414,415,416,417,423,503,505	

@@ -1,4 +1,9 @@
 scheduler:
- cron: 0 */1 * * * ?
- schedulerClassName: proxyCrawler
- schedulerMethod: doStart
+ crawler:
+  cron: 0 */1 * * * ?
+  schedulerBeanName: proxyCrawler
+  schedulerMethod: doStart
+ verify:
+  cron: 15 */1 * * * ?
+  schedulerBeanName: proxyVerify
+  schedulerMethod: doVerify

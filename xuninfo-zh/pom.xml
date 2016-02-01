@@ -6,8 +6,8 @@
 		<version>1.0.0-SNAPSHOT</version>
 	</parent>
 	  <artifactId>xuninfo-zh</artifactId>
-	   <packaging>pom</packaging>
-	  <name>xuninfo-zh</name>
+	  <packaging>pom</packaging>
+	  <name>${project.artifactId}</name>
 	  <description>xuninfo zh project</description>
 	  <url>http://www.xuninfo.com/zh</url>
 	 

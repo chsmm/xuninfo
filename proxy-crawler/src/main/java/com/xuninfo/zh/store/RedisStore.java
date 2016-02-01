@@ -11,44 +11,31 @@ public class RedisStore {
 	private RedisTemplate<String, String> redisTemplate;
 	volatile boolean  is=false;
 	public String getProxy(){
-		if(!is){
+		/*if(!is){
 			is=true;
 			redisTemplate.opsForSet().add("httpProxy","91.142.159.235:80","186.229.16.154:80");
-		}
+		}*/
 		return redisTemplate.opsForSet().randomMember("httpProxy");
 	
 	}
 	
+	public void addHttpProxy(String... httpProxy){
+		redisTemplate.opsForSet().add("httpProxy",httpProxy);
+	}
+	
+	public void addHttpProxyPage(String httpProxyPage){
+		redisTemplate.opsForSet().add("httpProxyPages",httpProxyPage);
+	}
+	
+	public String getHttpProxyPage(){
+		return redisTemplate.opsForSet().pop("httpProxyPages");
+	}
+	
+	public long getHttpProxyLen(){
+		return redisTemplate.opsForSet().size("httpProxyPages");
+	}
+	
 	public void addFailedRequest(String failedRequestInfo){
-		redisTemplate.opsForSet().add("failedRequest",failedRequestInfo);
+		redisTemplate.opsForSet().add("httpProxyFailedRequest",failedRequestInfo);
 	}
-	
-	public void addPage(String page){
-		redisTemplate.opsForSet().add("pages",page);
-	}
-	
-	public String getPage(){
-		return redisTemplate.opsForSet().pop("pages");
-	}
-	
-	public void addRequest(String request){
-		redisTemplate.opsForSet().add("request",request);
-	}
-	
-	public String getRequest(){
-		return redisTemplate.opsForSet().pop("request");
-	}
-	
-	public long getRequestLen(){
-		return redisTemplate.opsForSet().size("request");
-	}
-	
-	public void addAnswerQuestion(String ...answerQuestion){
-		redisTemplate.opsForSet().add("answerQuestions",answerQuestion);
-	}
-	
-	public void addNotAnswerQuestion(String ...notAnswerQuestions){
-		redisTemplate.opsForSet().add("notAnswerQuestions",notAnswerQuestions);
-	}
-
 }

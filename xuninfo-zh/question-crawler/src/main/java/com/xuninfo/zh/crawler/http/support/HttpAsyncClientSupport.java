@@ -42,22 +42,29 @@ import org.springframework.stereotype.Component;
 import us.codecraft.webmagic.Request;
 import us.codecraft.webmagic.Site;
 
+import com.xuninfo.zh.config.CrawlerConfig;
+import com.xuninfo.zh.config.HttpConfig;
 import com.xuninfo.zh.crawler.http.IHandler;
 import com.xuninfo.zh.store.RedisStore;
 
 @Component
 public class HttpAsyncClientSupport implements InitializingBean,DisposableBean{
 	
-	protected Logger logger = LoggerFactory.getLogger(getClass());
+protected Logger logger = LoggerFactory.getLogger(getClass());
 	
 	@Autowired
 	private RedisStore redisStore;
 	
+	@Autowired
+	private CrawlerConfig crawlerConfig;
+	
 	
 	private CloseableHttpAsyncClient httpAsyncClient;
 	
-	public HttpAsyncClientSupport() {
+	
+	private void init(){
 		try {
+			HttpConfig httpConfig = crawlerConfig.getHttpConfig();
 			//绕过证书验证，处理https请求  
 			SSLContext sslcontext = SSLContexts.createSystemDefault();
 			HostnameVerifier hostnameVerifier = new DefaultHostnameVerifier();  
@@ -69,19 +76,26 @@ public class HttpAsyncClientSupport implements InitializingBean,DisposableBean{
 	        //配置io线程  
 			IOReactorConfig ioReactorConfig = IOReactorConfig.custom()
 	                .setIoThreadCount(Runtime.getRuntime().availableProcessors())
-	                .setConnectTimeout(30000)
-	                .setSoTimeout(30000)
+	                .setConnectTimeout(httpConfig.getConnectTimeout())
+	                .setSoTimeout(httpConfig.getConnectTimeout())
 	                .build();  
 	        //设置连接池大小    
 	        ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(ioReactorConfig);  
 	        PoolingNHttpClientConnectionManager connectionManager = new PoolingNHttpClientConnectionManager(ioReactor, null, sessionStrategyRegistry, null);
-	        connectionManager.setMaxTotal(70);
+	        connectionManager.setMaxTotal(httpConfig.getConnectMaxTotal());
 	        httpAsyncClient = HttpAsyncClients.custom().setConnectionManager(connectionManager).build();
 		} catch (Exception e) {
 			logger.error("初始化 HttpAsyncClients 失败", e);
 		}
 	}
 
+	public void afterPropertiesSet() throws Exception {
+		init();
+		if(httpAsyncClient!=null){
+			httpAsyncClient.start();
+		}
+		
+	}
 
 	public void destroy() throws Exception {
 		if(httpAsyncClient!=null){
@@ -89,14 +103,10 @@ public class HttpAsyncClientSupport implements InitializingBean,DisposableBean{
 		}
 	}
 
-	public void afterPropertiesSet() throws Exception {
-		if(httpAsyncClient!=null){
-			httpAsyncClient.start();
-		}
-		
-	}
+	
 	
 	public void doGet(final Request request,final Site site,final IHandler handler){
+		final HttpConfig httpConfig = crawlerConfig.getHttpConfig();
 		//设置url与请求头信息
 		RequestBuilder requestBuilder = RequestBuilder.get().setUri(request.getUrl());
 		if (site.getHeaders() != null) {
@@ -109,11 +119,14 @@ public class HttpAsyncClientSupport implements InitializingBean,DisposableBean{
 	                .setConnectionRequestTimeout(site.getTimeOut())
 	                .setSocketTimeout(site.getTimeOut())
 	                .setConnectTimeout(site.getTimeOut());
-		HttpHost hots = getProxy();
-		if(hots!=null){
-			requestConfigBuilder.setProxy(hots);
-		}
-	     logger.info(hots.toHostString());          
+		
+		if(httpConfig.getProxy()){
+			HttpHost hots = getProxy();
+			if(hots!=null){
+				requestConfigBuilder.setProxy(hots);
+			}
+		    logger.info(hots.toHostString()); 
+		}    
 		//生成request
 		HttpUriRequest httpUriRequest = requestBuilder.setConfig(requestConfigBuilder.build()).build();
 		httpAsyncClient.execute(httpUriRequest, new FutureCallback<HttpResponse>() {
@@ -125,12 +138,17 @@ public class HttpAsyncClientSupport implements InitializingBean,DisposableBean{
 			public void completed(final HttpResponse resp) {
                 //这里使用EntityUtils.toString()方式时会大概率报错，原因：未接受完毕，链接已关  
                 try {  
+                	if (httpConfig.getGiveUpStatusCode().contains(resp.getStatusLine().getStatusCode()))return;
                     HttpEntity entity = resp.getEntity();  
                     if (entity != null) {  
                         final InputStream instream = entity.getContent();  
                         try {   
-                            String content = IOUtils.toString(new BufferedReader(new InputStreamReader(instream,"utf-8")));
-                            handler.completed(request,resp,content);
+                            String content = IOUtils.toString(new BufferedReader(new InputStreamReader(instream,httpConfig.getEncoding())));
+                        	if(httpConfig.getRetryStatusCode().contains(resp.getStatusLine().getStatusCode())){
+                        		failed(new RuntimeException(content));
+                        	}else{
+                                handler.completed(request,resp,content);
+                        	}
                         } finally {  
                             instream.close();  
                             EntityUtils.consume(entity);  

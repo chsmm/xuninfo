@@ -6,26 +6,24 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix="scheduler",locations="config/scheduler.yml")
 public class SchedulerConfig {
-	private String cron;
-	private String schedulerClassName;
-	private String schedulerMethod;
-	public String getCron() {
-		return cron;
+	
+	private SchedulerDetail crawler;
+	private SchedulerDetail verify;
+	
+	public SchedulerDetail getCrawler() {
+		return crawler;
 	}
-	public void setCron(String cron) {
-		this.cron = cron;
+
+	public void setCrawler(SchedulerDetail crawler) {
+		this.crawler = crawler;
 	}
-	public String getSchedulerClassName() {
-		return schedulerClassName;
+	public SchedulerDetail getVerify() {
+		return verify;
 	}
-	public void setSchedulerClassName(String schedulerClassName) {
-		this.schedulerClassName = schedulerClassName;
+
+	public void setVerify(SchedulerDetail verify) {
+		this.verify = verify;
 	}
-	public String getSchedulerMethod() {
-		return schedulerMethod;
-	}
-	public void setSchedulerMethod(String schedulerMethod) {
-		this.schedulerMethod = schedulerMethod;
-	}
+
 	
 }

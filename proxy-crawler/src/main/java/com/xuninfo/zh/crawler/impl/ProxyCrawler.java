@@ -14,15 +14,13 @@ public class ProxyCrawler extends AbstractCrawler {
 	@Autowired
 	private CrawlerConfig crawlerConfig;
 	
-	public volatile boolean isDone = false;
-	
 	public List<String> getUrls(){
 		return crawlerConfig.getUrls();
 	}
 	
 	@Override
 	protected void doInternalStart() {
-		
+		downloader.download(null, this);
 	}
 
 	

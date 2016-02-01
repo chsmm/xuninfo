@@ -1,6 +1,5 @@
 package com.xuninfo.zh.crawler;
 
-import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
@@ -17,6 +16,7 @@ import us.codecraft.webmagic.processor.PageProcessor;
 import us.codecraft.webmagic.scheduler.Scheduler;
 
 import com.google.common.util.concurrent.AbstractService;
+import com.xuninfo.zh.crawler.support.ExecutorServiceUtil;
 
 public abstract class AbstractCrawler extends AbstractService implements Crawler,Task {
 	
@@ -43,7 +43,7 @@ public abstract class AbstractCrawler extends AbstractService implements Crawler
 	}
 
 	public ExecutorService getExecutorService() {
-		return this.executorService;
+		return this.executorService==null ? ExecutorServiceUtil.getExecutorService() : executorService;
 	}
 	
 	
