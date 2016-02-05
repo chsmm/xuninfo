@@ -73,7 +73,7 @@ public abstract class AbstractCrawler extends AbstractService implements Crawler
 	@Override
 	protected void doStart() {
 
-		logger.info("Questions Crawler Start At Time:"+DateTime.now().toString("yyyy-MM-dd hh:mm:ss"));
+		logger.info("Start Proxy Crawler  At Time:"+DateTime.now().toString("yyyy-MM-dd hh:mm:ss"));
 		doInternalStart();
 	}
 	
@@ -82,7 +82,7 @@ public abstract class AbstractCrawler extends AbstractService implements Crawler
 
 	@Override
 	protected void doStop() {
-		logger.info("Questions Crawler End At Time:"+DateTime.now().toString("yyyy-MM-dd hh:mm:ss"));
+		logger.info("End Proxy Crawler At Time:"+DateTime.now().toString("yyyy-MM-dd hh:mm:ss"));
 		executorService.shutdown();
 	}
 

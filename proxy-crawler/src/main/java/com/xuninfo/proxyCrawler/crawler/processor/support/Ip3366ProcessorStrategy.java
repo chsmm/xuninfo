@@ -12,7 +12,6 @@ import com.google.common.collect.Lists;
 import com.xuninfo.proxyCrawler.crawler.processor.ProcessorStrategy;
 @Component
 public class Ip3366ProcessorStrategy implements ProcessorStrategy{
-
 	public List<String> processor(Html html,String url) {
 		List<String> hosts = Lists.newArrayList();
 		List<Selectable> trs  = html.xpath("div[@id=\"container\"]//table[@class=\"table\"]/tbody/tr").nodes();

@@ -18,18 +18,17 @@ import us.codecraft.webmagic.processor.PageProcessor;
 import us.codecraft.webmagic.selector.Html;
 
 import com.google.common.collect.Maps;
+import com.xuninfo.proxyCrawler.config.CrawlerConfig;
 import com.xuninfo.proxyCrawler.config.ProcessorConfig;
-import com.xuninfo.proxyCrawler.crawler.http.proxyVerify.ProxyVerify;
 import com.xuninfo.proxyCrawler.crawler.impl.ProxyCrawler;
 import com.xuninfo.proxyCrawler.store.RedisStore;
 @Component
-public class QuestionPageProcessor implements  PageProcessor,ApplicationContextAware {
+public class ProxyWebPageProcessor implements  PageProcessor,ApplicationContextAware {
 	
 	private Logger logger = LoggerFactory.getLogger(getClass());
 	
 	private Site site = Site.me()
-	         .setUserAgent("Mozilla/5.0 (Windows NT 6.1; WOW64; rv:38.0) Gecko/20100101 Firefox/38.0")
-	         .setCharset("UTF-8")
+	         .setUserAgent("Mozilla/5.0 (Windows NT 6.1; WOW64; rv:44.0) Gecko/20100101 Firefox/44.0")
 	         .addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
 	         .addHeader("Accept-Language", "zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3")
 			 .addHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
@@ -37,11 +36,9 @@ public class QuestionPageProcessor implements  PageProcessor,ApplicationContextA
 	@Autowired 
 	ProxyCrawler crawler;
 	
-	@Autowired
-	RedisStore redisStore;
 	
 	@Autowired
-	ProxyVerify proxyVerify;
+	RedisStore redisStore;
 	
 	private Map<String, ProcessorStrategy> processorStrategys = Maps.newConcurrentMap();;
 	
@@ -68,8 +65,7 @@ public class QuestionPageProcessor implements  PageProcessor,ApplicationContextA
 			if(processorStrategys.containsKey(url)){
 				List<String> hosts = processorStrategys.get(url).processor(html,url);
 				if(!hosts.isEmpty()){
-					proxyVerify.addVerifyQueue(hosts);
-					//redisStore.addHttpProxy(hosts.toArray(new String[0]));
+					redisStore.addHttpProxy(hosts.toArray(new String[0]));
 				}
 			}
 		}

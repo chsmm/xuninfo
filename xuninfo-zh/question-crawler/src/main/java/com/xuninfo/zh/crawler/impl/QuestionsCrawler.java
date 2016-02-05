@@ -4,8 +4,6 @@ import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import us.codecraft.webmagic.Request;
-
 import com.xuninfo.zh.config.CrawlerConfig;
 import com.xuninfo.zh.crawler.AbstractCrawler;
 
@@ -24,8 +22,7 @@ public class QuestionsCrawler extends AbstractCrawler {
 	
 	@Override
 	protected void doInternalStart() {
-		Request request = new Request(crawlerConfig.getUrl());
-		scheduler.push(request, this);
+		scheduler.push(crawlerConfig.getUrl());
 		downloader.download(null, this);
 		pageProcessor.process(null);
 	}

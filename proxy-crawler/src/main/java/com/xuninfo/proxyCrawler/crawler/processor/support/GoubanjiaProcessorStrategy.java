@@ -11,12 +11,12 @@ import us.codecraft.webmagic.selector.Selectable;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.xuninfo.proxyCrawler.crawler.processor.ProcessorStrategy;
-@Component
-public class QiaodmProcessorStrategy implements ProcessorStrategy {
 
+@Component
+public class GoubanjiaProcessorStrategy implements ProcessorStrategy{
 	public List<String> processor(Html html,String url) {
- 		List<String> hosts = Lists.newArrayList();
-		List<Selectable> trs  = html.xpath("//div[@class=\"inner\"]//table[@class=\"iplist\"]/tbody/tr").nodes();
+		List<String> hosts = Lists.newArrayList();
+		List<Selectable> trs  = html.xpath("div[@class=\"wrap\"]//div[@id=\"list\"]/table[@class=\"table\"]/tbody/tr").nodes();
 		if (!trs.isEmpty()) {
 			trs = trs.subList(2, trs.size());
 			StringBuilder builder;
@@ -38,6 +38,8 @@ public class QiaodmProcessorStrategy implements ProcessorStrategy {
 						builder.append(ip.trim());
 					}
 				}
+				String ip = builder.toString();
+				if(StringUtils.isEmpty(ip))continue;
 				hosts.add(Joiner.on(":").join(builder.toString(),
 						tr.xpath("tr/td[@class=\"port\"]/text()").get(), url));
 			}

@@ -8,20 +8,33 @@ import us.codecraft.webmagic.Request;
 import us.codecraft.webmagic.Task;
 import us.codecraft.webmagic.scheduler.Scheduler;
 
-import com.xuninfo.zh.store.RedisStore;
+import com.xuninfo.zh.store.PageStore;
 @Component
 public class RedisScheduler implements Scheduler {
 
 	@Autowired
-	private RedisStore redisStore;
+	private PageStore pageStore;
 	
 	public void push(Request request, Task task) {
-		redisStore.addRequest(request.getUrl());
+		push(request.getUrl());
 	}
 
 	public Request poll(Task task) {
-		String req = redisStore.getRequest();
+		String req = pageStore.getPageUrl();
 		return !StringUtils.isEmpty(req)?new Request(req):null;
+	}
+	
+	public void push(String url) {
+		pageStore.addPageUrl(url);
+	}
+
+	public String poll() {
+		String req = pageStore.getPageUrl();
+		return !StringUtils.isEmpty(req)?req:null;
+	}
+	
+	public boolean urlIsEmpty(){
+		return pageStore.urlIsEmpty();
 	}
 
 }

@@ -1,0 +1,4 @@
+verify:
+ host: http://fanyi.youdao.com/
+ feature: 在线翻译_有道
+ 

@@ -20,7 +20,6 @@ public class CrawlerConfig {
 		this.urls = urls;
 	}
 
-	
 	public HttpConfig getHttpConfig() {
 		return httpConfig;
 	}

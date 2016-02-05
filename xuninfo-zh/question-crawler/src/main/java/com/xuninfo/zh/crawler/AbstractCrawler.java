@@ -16,6 +16,7 @@ import us.codecraft.webmagic.processor.PageProcessor;
 import us.codecraft.webmagic.scheduler.Scheduler;
 
 import com.google.common.util.concurrent.AbstractService;
+import com.xuninfo.zh.crawler.scheduler.RedisScheduler;
 import com.xuninfo.zh.crawler.support.ExecutorServiceUtil;
 
 public abstract class AbstractCrawler extends AbstractService implements Crawler,Task {
@@ -32,7 +33,7 @@ public abstract class AbstractCrawler extends AbstractService implements Crawler
 	protected Pipeline pipeline;
 	
 	@Autowired
-	protected Scheduler scheduler;
+	protected RedisScheduler scheduler;
 	
 	protected Site site;
 	
@@ -81,13 +82,10 @@ public abstract class AbstractCrawler extends AbstractService implements Crawler
 		this.pipeline = pipeline;
 	}
 
-	public Scheduler getScheduler() {
+	public RedisScheduler getScheduler() {
 		return scheduler;
 	}
 
-	public void setScheduler(Scheduler scheduler) {
-		this.scheduler = scheduler;
-	}
 
 	public void setSite(Site site) {
 		this.site = site;

@@ -14,7 +14,7 @@ public class JsonRedisSerializer implements RedisSerializer<String> {
 	}
 
 	public String deserialize(byte[] bytes) throws SerializationException {
-		return (String) JSON.parse(bytes);
+		return (bytes==null)? null:(String) JSON.parse(bytes);
 	}
 
 	

@@ -13,7 +13,7 @@ import com.xuninfo.proxyCrawler.crawler.processor.ProcessorStrategy;
 @Component
 public class SslproxiesProcessorStrategy implements ProcessorStrategy {
 
-	public List<String> processor(Html html, String url) {
+	public List<String> processor(Html html,String url) {
 		List<String> hosts = Lists.newArrayList();
 		List<Selectable> trs  = html.xpath("div[@id=\"wrap\"]//div[@class=\"block-settings\"]/table[@id=\"proxylisttable\"]/tbody/tr").nodes();
 		for(Selectable tr : trs){

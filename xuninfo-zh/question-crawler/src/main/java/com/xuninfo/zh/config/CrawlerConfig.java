@@ -10,6 +10,11 @@ public class CrawlerConfig {
 	
 	private String limit;
 	
+	
+	private Integer downloadThreadCount;
+	
+	private Integer pageProcessorThreadCount;
+
 	private HttpConfig httpConfig;
 
 	public String getUrl() {
@@ -26,6 +31,24 @@ public class CrawlerConfig {
 
 	public void setLimit(String limit) {
 		this.limit = limit;
+	}
+	
+	
+	
+	public Integer getDownloadThreadCount() {
+		return downloadThreadCount;
+	}
+
+	public void setDownloadThreadCount(Integer downloadThreadCount) {
+		this.downloadThreadCount = downloadThreadCount;
+	}
+
+	public Integer getPageProcessorThreadCount() {
+		return pageProcessorThreadCount;
+	}
+
+	public void setPageProcessorThreadCount(Integer pageProcessorThreadCount) {
+		this.pageProcessorThreadCount = pageProcessorThreadCount;
 	}
 
 	public HttpConfig getHttpConfig() {

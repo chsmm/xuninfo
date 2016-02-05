@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +16,6 @@ import us.codecraft.webmagic.Task;
 import us.codecraft.webmagic.downloader.AbstractDownloader;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.xuninfo.proxyCrawler.crawler.http.support.HttpAsyncClientSupport;
 import com.xuninfo.proxyCrawler.crawler.impl.ProxyCrawler;
 import com.xuninfo.proxyCrawler.store.RedisStore;
@@ -49,8 +49,15 @@ public class HttpAsyncClientDownload extends AbstractDownloader implements Runna
 
 	}
 
-	public void failed(String url,Exception e) {
-		redisStore.addFailedRequest(Joiner.on(':').join(url,e.getMessage()));
+	public void failed(String url,Exception exception) {
+	/*	try{
+			String error = exception.getMessage();
+			if(StringUtils.isEmpty(error))redisStore.addFailedRequest(Joiner.on(':').join(DateTime.now().toString("yyyy-MM-dd hh:mm:ss"),url));
+			else redisStore.addFailedRequest(Joiner.on(':').join(DateTime.now().toString("yyyy-MM-dd hh:mm:ss"),url,error));
+		}catch(Exception e){
+			logger.error("处理失败url异常", exception);
+		}*/
+		
 	}
 
 
@@ -62,7 +69,12 @@ public class HttpAsyncClientDownload extends AbstractDownloader implements Runna
 	}
 
 	public void cancelled(String url) {
-		redisStore.addFailedRequest(url);
+	/*	try{
+			redisStore.addFailedRequest(Joiner.on(':').join(DateTime.now().toString("yyyy-MM-dd hh:mm:ss"),url));
+		}catch(Exception e){
+			logger.error("处理取消url异常", e);
+		}*/
+		
 	}
 	
 	
@@ -71,7 +83,7 @@ public class HttpAsyncClientDownload extends AbstractDownloader implements Runna
 		List<String> urls = crawler.getUrls();
 		for (String url : urls) {
 			if(!StringUtils.isEmpty(url)){
-				asyncClientSupport.doGet(url, crawler.getSite().getHeaders(), this);
+				asyncClientSupport.doGet(url, this);
 			}
 		}
 		

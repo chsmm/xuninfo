@@ -1,5 +1,6 @@
 package com.xuninfo.proxyCrawler.config;
 
+import java.util.Map;
 import java.util.Set;
 
 public class HttpConfig {
@@ -9,6 +10,7 @@ public class HttpConfig {
 	private Boolean proxy;
 	private Set<Integer> retryStatusCode;
 	private Set<Integer> giveUpStatusCode;
+	private Map<String, String> headers;
 	
 	public Integer getConnectTimeout() {
 		return connectTimeout;
@@ -45,6 +47,12 @@ public class HttpConfig {
 	}
 	public void setGiveUpStatusCode(Set<Integer> giveUpStatusCode) {
 		this.giveUpStatusCode = giveUpStatusCode;
+	}
+	public Map<String, String> getHeaders() {
+		return headers;
+	}
+	public void setHeaders(Map<String, String> headers) {
+		this.headers = headers;
 	}
 	
 }

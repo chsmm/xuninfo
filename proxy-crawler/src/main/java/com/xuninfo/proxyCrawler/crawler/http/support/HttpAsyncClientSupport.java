@@ -1,6 +1,5 @@
 package com.xuninfo.proxyCrawler.crawler.http.support;
 
-
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -45,42 +44,54 @@ import com.xuninfo.proxyCrawler.crawler.http.IHandler;
 import com.xuninfo.proxyCrawler.store.RedisStore;
 
 @Component
-public class HttpAsyncClientSupport implements InitializingBean,DisposableBean{
-	
-	protected Logger logger = LoggerFactory.getLogger(getClass());
-	
+public class HttpAsyncClientSupport implements InitializingBean, DisposableBean {
+
+	protected final Logger logger = LoggerFactory.getLogger(getClass());
+
 	@Autowired
 	private RedisStore redisStore;
-	
+
 	@Autowired
 	private CrawlerConfig crawlerConfig;
-	
-	
+
 	private CloseableHttpAsyncClient httpAsyncClient;
-	
-	
-	private void init(){
+
+	private ThreadLocal<String> proxyHostLocal = new ThreadLocal<String>();
+
+	public String getProxyHost() {
+		return proxyHostLocal.get();
+	}
+
+	private void init() {
 		try {
 			HttpConfig httpConfig = crawlerConfig.getHttpConfig();
-			//绕过证书验证，处理https请求  
+			// 绕过证书验证，处理https请求
 			SSLContext sslcontext = SSLContexts.createSystemDefault();
-			HostnameVerifier hostnameVerifier = new DefaultHostnameVerifier();  
-	        // 设置协议http和https对应的处理socket链接工厂的对象  
-			Registry<SchemeIOSessionStrategy> sessionStrategyRegistry = RegistryBuilder.<SchemeIOSessionStrategy>create()
-		            .register("http", NoopIOSessionStrategy.INSTANCE)
-		            .register("https", new SSLIOSessionStrategy(sslcontext,hostnameVerifier))
-		            .build();
-	        //配置io线程  
-			IOReactorConfig ioReactorConfig = IOReactorConfig.custom()
-	                .setIoThreadCount(Runtime.getRuntime().availableProcessors())
-	                .setConnectTimeout(httpConfig.getConnectTimeout())
-	                .setSoTimeout(httpConfig.getConnectTimeout())
-	                .build();  
-	        //设置连接池大小    
-	        ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(ioReactorConfig);  
-	        PoolingNHttpClientConnectionManager connectionManager = new PoolingNHttpClientConnectionManager(ioReactor, null, sessionStrategyRegistry, null);
+			HostnameVerifier hostnameVerifier = new DefaultHostnameVerifier();
+			// 设置协议http和https对应的处理socket链接工厂的对象
+			Registry<SchemeIOSessionStrategy> sessionStrategyRegistry = RegistryBuilder
+					.<SchemeIOSessionStrategy> create()
+					.register("http", NoopIOSessionStrategy.INSTANCE)
+					.register(
+							"https",
+							new SSLIOSessionStrategy(sslcontext,
+									hostnameVerifier)).build();
+			// 配置io线程
+			IOReactorConfig ioReactorConfig = IOReactorConfig
+					.custom()
+					.setIoThreadCount(
+							Runtime.getRuntime().availableProcessors())
+					.setConnectTimeout(httpConfig.getConnectTimeout())
+					.setSoTimeout(httpConfig.getConnectTimeout()).build();
+			// 设置连接池大小
+			ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(
+					ioReactorConfig);
+			PoolingNHttpClientConnectionManager connectionManager = new PoolingNHttpClientConnectionManager(
+					ioReactor, null, sessionStrategyRegistry, null);
+			connectionManager.setDefaultMaxPerRoute(httpConfig.getConnectMaxTotal());
 	        connectionManager.setMaxTotal(httpConfig.getConnectMaxTotal());
-	        httpAsyncClient = HttpAsyncClients.custom().setConnectionManager(connectionManager).build();
+			httpAsyncClient = HttpAsyncClients.custom()
+					.setConnectionManager(connectionManager).build();
 		} catch (Exception e) {
 			logger.error("初始化 HttpAsyncClients 失败", e);
 		}
@@ -88,150 +99,189 @@ public class HttpAsyncClientSupport implements InitializingBean,DisposableBean{
 
 	public void afterPropertiesSet() throws Exception {
 		init();
-		if(httpAsyncClient!=null){
+		if (httpAsyncClient != null) {
 			httpAsyncClient.start();
 		}
-		
+
 	}
 
 	public void destroy() throws Exception {
-		if(httpAsyncClient!=null){
+		if (httpAsyncClient != null) {
 			httpAsyncClient.close();
 		}
 	}
 
-	
-	
-	public void doGet(final String url,final Map<String, String> headers,final IHandler handler){
-		final HttpConfig httpConfig = crawlerConfig.getHttpConfig();
-		//设置url与请求头信息
-		RequestBuilder requestBuilder = RequestBuilder.get().setUri(url);
-		if (headers != null) {
-            for (Map.Entry<String, String> headerEntry : headers.entrySet()) {
-                requestBuilder.addHeader(headerEntry.getKey(), headerEntry.getValue());
-            }
-        }
-		//配置访问限制
-		RequestConfig.Builder requestConfigBuilder = RequestConfig.custom()
-	                .setConnectionRequestTimeout(httpConfig.getConnectTimeout())
-	                .setSocketTimeout(httpConfig.getConnectTimeout())
-	                .setConnectTimeout(httpConfig.getConnectTimeout());
-		
-		if(httpConfig.getProxy()){
-			HttpHost hots = getProxy();
-			if(hots!=null){
-				requestConfigBuilder.setProxy(hots);
+	public void doGet(final String url,final IHandler handler) {
+		try {
+			final HttpConfig httpConfig = crawlerConfig.getHttpConfig();
+			// 设置url与请求头信息
+			RequestBuilder requestBuilder = RequestBuilder.get().setUri(url);
+			for (Map.Entry<String, String> headerEntry : httpConfig.getHeaders().entrySet()) {
+				requestBuilder.addHeader(headerEntry.getKey(),
+						headerEntry.getValue());
 			}
-		}    
-		//生成request
-		HttpUriRequest httpUriRequest = requestBuilder.setConfig(requestConfigBuilder.build()).build();
-		httpAsyncClient.execute(httpUriRequest, new FutureCallback<HttpResponse>() {
-			
-			public void failed(Exception exception) {
-				handler.failed(url,exception);
+			// 配置访问限制
+			RequestConfig.Builder requestConfigBuilder = RequestConfig
+					.custom()
+					.setConnectionRequestTimeout(httpConfig.getConnectTimeout())
+					.setSocketTimeout(httpConfig.getConnectTimeout())
+					.setConnectTimeout(httpConfig.getConnectTimeout());
+
+			if (httpConfig.getProxy()) {
+				HttpHost hots = getProxy();
+				if (hots != null) {
+					requestConfigBuilder.setProxy(hots);
+				}
 			}
-			
-			public void completed(final HttpResponse resp) {
-                //这里使用EntityUtils.toString()方式时会大概率报错，原因：未接受完毕，链接已关  
-                try {  
-                	
-                    HttpEntity entity = resp.getEntity();  
-                    if (entity != null) {  
-                        final InputStream instream = entity.getContent();  
-                        try {   
-                            String content = IOUtils.toString(new BufferedReader(new InputStreamReader(instream,httpConfig.getEncoding())));
-                        	if(httpConfig.getRetryStatusCode().contains(resp.getStatusLine().getStatusCode()))
-                        		return;
-                        	else if(httpConfig.getRetryStatusCode().contains(resp.getStatusLine().getStatusCode()))
-                        		failed(new RuntimeException(content));
-                        	else 
-                        		handler.completed(url,resp,content);
-                        	
-                        } finally {  
-                            instream.close();  
-                            EntityUtils.consume(entity);  
-                        }  
-                    }  
-                } catch (Exception e) { 
-                	handler.failed(url,e);
-                }  
-			}
-			
-			public void cancelled() {
-				handler.cancelled(url);
-			}
-		});
+			// 生成request
+			HttpUriRequest httpUriRequest = requestBuilder.setConfig(
+					requestConfigBuilder.build()).build();
+			httpAsyncClient.execute(httpUriRequest,
+					new FutureCallback<HttpResponse>() {
+
+						public void failed(Exception exception) {
+							handler.failed(url, exception);
+						}
+
+						public void completed(final HttpResponse resp) {
+							// 这里使用EntityUtils.toString()方式时会大概率报错，原因：未接受完毕，链接已关
+							try {
+								int statusCode = resp.getStatusLine().getStatusCode();
+								if (statusCode!=200){
+									return;
+								}
+								HttpEntity entity = resp.getEntity();
+								if (entity != null) {
+									final InputStream instream = entity.getContent();
+									try {
+										String content = IOUtils.toString(new BufferedReader(new InputStreamReader(instream,httpConfig.getEncoding())));
+										handler.completed(url, resp,content);
+								/*		if (httpConfig
+												.getRetryStatusCode()
+												.contains(
+														resp.getStatusLine()
+																.getStatusCode()))
+											return;
+										else if (httpConfig
+												.getRetryStatusCode()
+												.contains(
+														resp.getStatusLine()
+																.getStatusCode()))
+											failed(new RuntimeException(content));
+										else
+											handler.completed(url, resp,
+													content);*/
+
+									} finally {
+										instream.close();
+										EntityUtils.consume(entity);
+									}
+								}
+							} catch (Exception e) {
+								handler.failed(url, e);
+							}
+						}
+
+						public void cancelled() {
+							handler.cancelled(url);
+
+						}
+					});
+		} catch (Exception e) {
+			logger.error(url + "--异常", e);
+		}
 	}
-	
-	public void doGetVerify(final String url,final Map<String, String> headers,final IHandler handler,HttpHost proxyHost){
-		final HttpConfig httpConfig = crawlerConfig.getHttpConfig();
-		//设置url与请求头信息
-		RequestBuilder requestBuilder = RequestBuilder.get().setUri(url);
-		if (headers != null) {
-            for (Map.Entry<String, String> headerEntry : headers.entrySet()) {
-                requestBuilder.addHeader(headerEntry.getKey(), headerEntry.getValue());
-            }
-        }
-		//配置访问限制
-		RequestConfig.Builder requestConfigBuilder = RequestConfig.custom()
-	                .setConnectionRequestTimeout(httpConfig.getConnectTimeout())
-	                .setSocketTimeout(httpConfig.getConnectTimeout())
-	                .setConnectTimeout(httpConfig.getConnectTimeout())
-	                .setProxy(proxyHost);
-	   
-		//生成request
-		HttpUriRequest httpUriRequest = requestBuilder.setConfig(requestConfigBuilder.build()).build();
-		httpAsyncClient.execute(httpUriRequest, new FutureCallback<HttpResponse>() {
-			
-			public void failed(Exception exception) {
-				handler.failed(url,exception);
+
+	public void doGetVerify(final String url, final IHandler handler,
+			final HttpHost proxyHost) {
+		try {
+			final HttpConfig httpConfig = crawlerConfig.getHttpConfig();
+			// 设置url与请求头信息
+			RequestBuilder requestBuilder = RequestBuilder.get().setUri(url);
+			for (Map.Entry<String, String> headerEntry : httpConfig.getHeaders().entrySet()) {
+				requestBuilder.addHeader(headerEntry.getKey(),
+						headerEntry.getValue());
 			}
-			
-			public void completed(final HttpResponse resp) {
-                //这里使用EntityUtils.toString()方式时会大概率报错，原因：未接受完毕，链接已关  
-                try {  
-                	
-                    HttpEntity entity = resp.getEntity();  
-                    if (entity != null) {  
-                        final InputStream instream = entity.getContent();  
-                        try {   
-                            String content = IOUtils.toString(new BufferedReader(new InputStreamReader(instream,httpConfig.getEncoding())));
-                        	if(httpConfig.getRetryStatusCode().contains(resp.getStatusLine().getStatusCode()))
-                        		return;
-                        	else if(httpConfig.getRetryStatusCode().contains(resp.getStatusLine().getStatusCode()))
-                        		failed(new RuntimeException(content));
-                        	else 
-                        		handler.completed(url,resp,content);
-                        	
-                        } finally {  
-                            instream.close();  
-                            EntityUtils.consume(entity);  
-                        }  
-                    }  
-                } catch (Exception e) { 
-                	handler.failed(url,e);
-                }  
-			}
-			
-			public void cancelled() {
-				handler.cancelled(url);
-			}
-		});
+			// 配置访问限制
+			RequestConfig.Builder requestConfigBuilder = RequestConfig
+					.custom()
+					.setConnectionRequestTimeout(httpConfig.getConnectTimeout())
+					.setSocketTimeout(httpConfig.getConnectTimeout())
+					.setConnectTimeout(httpConfig.getConnectTimeout())
+					.setProxy(proxyHost);
+
+			// 生成request
+			HttpUriRequest httpUriRequest = requestBuilder.setConfig(
+					requestConfigBuilder.build()).build();
+			httpAsyncClient.execute(httpUriRequest,
+					new FutureCallback<HttpResponse>() {
+
+						public void failed(Exception exception) {
+							handler.failed(url, exception);
+						}
+
+						public void completed(final HttpResponse resp) {
+							// 这里使用EntityUtils.toString()方式时会大概率报错，原因：未接受完毕，链接已关
+							try {
+
+								HttpEntity entity = resp.getEntity();
+								if (entity != null) {
+									final InputStream instream = entity
+											.getContent();
+									try {
+										proxyHostLocal.set(proxyHost
+												.toHostString());
+										String content = IOUtils.toString(new BufferedReader(
+												new InputStreamReader(instream,
+														httpConfig
+																.getEncoding())));
+										if (httpConfig
+												.getRetryStatusCode()
+												.contains(
+														resp.getStatusLine()
+																.getStatusCode()))
+											return;
+										else if (httpConfig
+												.getRetryStatusCode()
+												.contains(
+														resp.getStatusLine()
+																.getStatusCode()))
+											failed(new RuntimeException(content));
+										else
+											handler.completed(url, resp,
+													content);
+
+									} finally {
+										instream.close();
+										proxyHostLocal.remove();
+										EntityUtils.consume(entity);
+									}
+								}
+							} catch (Exception e) {
+								handler.failed(url, e);
+							}
+						}
+
+						public void cancelled() {
+							handler.cancelled(url);
+						}
+					});
+		} catch (Exception e) {
+			logger.error(url + "--异常", e);
+		}
 	}
-	
-	
-	public String doPost(){
+
+	public String doPost() {
 		return null;
 	}
-	
-	
-	
-	private HttpHost getProxy(){
-		String hostStr = redisStore.getProxy();
-		if(StringUtils.isEmpty(hostStr))return null;
-		String[] hp=hostStr.split(":");
-		HttpHost httpHost =  new HttpHost(hp[0], Integer.parseInt(hp[1]));
+
+	private HttpHost getProxy() {
+		String hostStr = redisStore.getValidProxy();
+		if (StringUtils.isEmpty(hostStr))
+			return null;
+		String[] hp = hostStr.split(":");
+		HttpHost httpHost = new HttpHost(hp[0], Integer.parseInt(hp[1]));
 		return httpHost;
 	}
-	
+
 }
