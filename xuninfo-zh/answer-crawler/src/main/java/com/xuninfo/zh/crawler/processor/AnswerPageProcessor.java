@@ -19,16 +19,16 @@ import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.xuninfo.zh.config.CrawlerConfig;
-import com.xuninfo.zh.crawler.impl.QuestionsCrawler;
+import com.xuninfo.zh.crawler.impl.AnswerCrawler;
 import com.xuninfo.zh.store.PageStore;
 import com.xuninfo.zh.store.RedisStore;
 @Component
-public class QuestionPageProcessor implements Runnable, PageProcessor {
+public class AnswerPageProcessor implements Runnable, PageProcessor {
 	
 	private Logger logger = LoggerFactory.getLogger(getClass());
 	
 	@Autowired 
-	QuestionsCrawler crawler;
+	AnswerCrawler crawler;
 	
 	@Autowired
 	RedisStore redisStore;

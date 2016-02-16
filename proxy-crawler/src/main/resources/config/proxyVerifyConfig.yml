@@ -1,6 +1,6 @@
 verify:
- host: http://www.sina.com.cn/
- feature: 新浪首页
+ host: http://fanyi.youdao.com/
+ feature: 在线翻译_有道
  verifyQueueSize: 200
  verifyQueueTimeout: 300
  

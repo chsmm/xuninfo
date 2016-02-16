@@ -13,6 +13,7 @@
 	 
 	  <modules>
 			<module>question-crawler</module>
+			<module>answer-crawler</module>
 	  </modules>
   
 </project>
