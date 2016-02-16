@@ -9,7 +9,7 @@ crawler:
   connectTimeout: 3000
   connectMaxTotal: 50
   encoding: UTF-8
-  proxy: ture
+  proxy: true
   headers:
    Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
    Content-Type: text/html; charset=UTF-8
