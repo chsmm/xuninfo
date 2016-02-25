@@ -1,16 +1,20 @@
 crawler: 
- urls: http://www.ip3366.net/free/,http://ip.qiaodm.com/,http://www.kuaidaili.com/,http://www.sslproxies.org/,http://www.cool-proxy.net/proxies/http_proxy_list/sort:update_time/direction:desc/page:1,http://ip.izmoney.com/,http://free-proxy-list.net/,http://proxy.goubanjia.com/,http://www.socks-proxy.net/
+ url: https://www.zhihu.com/node/QuestionAnswerListV2
+ pageProcessorThreadCount: 3
+ downloadThreadCount: 1
+ downloadSleep: 1500
  httpConfig:
-  connectTimeout: 5000
+  connectTimeout: 3000
   connectMaxTotal: 50
-  encoding: utf-8
+  encoding: UTF-8
   proxy: true
-  retryStatusCode: 500,504
-  giveUpStatusCode: 400,401.402,403,404,405,406,407,412,413,414,415,416,417,423,503,505
   headers:
    Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+   Content-Type: text/html; charset=UTF-8
    Accept-Encoding: gzip, deflate
-   Accept-Language: zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3
-   User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64; rv:44.0) Gecko/20100101 Firefox/44.0
-   Content-Type: application/x-www-form-urlencoded; charset=UTF-8
+   Accept-Language: zh-CN,zh;q=0.8
+   User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.97 Safari/537.36
+   Referer: https://www.zhihu.com/
    DNT: 1
+  
+ 

@@ -1,25 +1,25 @@
 package com.xuninfo.zh.crawler.http;
 
-import org.apache.http.HttpResponse;
+import java.util.Map;
 
-import us.codecraft.webmagic.Request;
+import org.apache.http.HttpResponse;
 
 public interface IHandler {
 	/** 
      * 处理异常时，执行该方法 
      * @return 
      */  
-	void failed(String url,Exception e);  
+	void failed(Map<String, String> parameters,Exception e);  
       
     /** 
      * 处理正常时，执行该方法 
      * @return 
      */  
-	void completed(String url, HttpResponse httpResponse, String respBody);
+	void completed(Map<String, String> parameters, HttpResponse httpResponse, String respBody);
       
     /** 
      * 处理取消时，执行该方法 
      * @return 
      */  
-	void cancelled(String url);
+	void cancelled(Map<String, String> parameters);
 }

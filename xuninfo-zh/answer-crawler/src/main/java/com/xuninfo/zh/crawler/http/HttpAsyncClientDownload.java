@@ -20,7 +20,6 @@ import com.google.common.base.Joiner;
 import com.xuninfo.zh.config.CrawlerConfig;
 import com.xuninfo.zh.crawler.http.support.HttpAsyncClientSupport;
 import com.xuninfo.zh.crawler.impl.AnswerCrawler;
-import com.xuninfo.zh.crawler.scheduler.RedisScheduler;
 import com.xuninfo.zh.store.PageStore;
 import com.xuninfo.zh.store.RedisStore;
 
@@ -104,6 +103,10 @@ public class HttpAsyncClientDownload extends AbstractDownloader implements Runna
 	}
 
 	public void run() {
+		
+		
+		
+		
 		while(!crawler.isDone || !pageStore.urlIsEmpty()){
 			asyncClientSupport.doGet(pageStore.urlIsEmpty()?url+pageSize.getAndIncrement():pageStore.getPageUrl(), this);	
 			try {

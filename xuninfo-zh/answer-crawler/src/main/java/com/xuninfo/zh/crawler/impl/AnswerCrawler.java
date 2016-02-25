@@ -14,12 +14,4 @@ public class AnswerCrawler extends AbstractCrawler {
 		downloader.download(null, this);
 		pageProcessor.process(null);
 	}
-
-	
-	
-	
-	
-	
-	
-
 }

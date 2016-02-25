@@ -65,12 +65,8 @@ public class RedisStore {
 		return redisTemplate.opsForSet().size("request");
 	}
 	
-	public void addAnswerQuestion(String ...answerQuestion){
-		redisTemplate.opsForSet().add("answerQuestions",answerQuestion);
-	}
-	
-	public void addNotAnswerQuestion(String ...notAnswerQuestions){
-		redisTemplate.opsForSet().add("notAnswerQuestions",notAnswerQuestions);
+	public void addQuestions(String ...answerQuestion){
+		redisTemplate.opsForSet().add("questions",answerQuestion);
 	}
 	
 

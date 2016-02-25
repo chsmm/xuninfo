@@ -27,6 +27,7 @@ import org.apache.http.config.MessageConstraints;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
+import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +60,8 @@ protected Logger logger = LoggerFactory.getLogger(getClass());
 	private CloseableHttpAsyncClient httpAsyncClient;
 	
 	private AtomicBoolean isNewProxy = new AtomicBoolean(true);
+	
+	private FutureCallback<HttpResponse> callback;
 	
 	//ConcurrentMap<String, HttpHost> proxryPool = Maps.newConcurrentMap();
 	
@@ -112,36 +115,45 @@ protected Logger logger = LoggerFactory.getLogger(getClass());
 		}
 	}
 
+	private RequestBuilder get(){
+		return RequestBuilder.get();
+	}
 	
+	private RequestBuilder post(){
+		return RequestBuilder.post();
+	}
 	
-	public void doGet(final String url, final IHandler handler) {
+	private void doRequest(final RequestBuilder requestBuilder, final String url,final Map<String, String> parameters,final IHandler handler){
 		try {
 			final HttpConfig httpConfig = crawlerConfig.getHttpConfig();
-			
 			// 设置url与请求头信息
-			RequestBuilder requestBuilder = RequestBuilder.get().setUri(url);
+			requestBuilder .setUri(url);
 			for (Map.Entry<String, String> headerEntry : httpConfig.getHeaders().entrySet()) {
                 requestBuilder.addHeader(headerEntry.getKey(), headerEntry.getValue());
             }
+			if(null!=parameters){
+				for (Map.Entry<String, String> parameter : parameters.entrySet()) {
+					requestBuilder.addParameters(new BasicNameValuePair(parameter.getKey(),parameter.getValue()));
+				}
+			}
 			// 配置访问限制
 			RequestConfig.Builder requestConfigBuilder = RequestConfig
 					.custom()
 					.setConnectionRequestTimeout(httpConfig.getConnectTimeout())
 					.setSocketTimeout(httpConfig.getConnectTimeout())
 					.setConnectTimeout(httpConfig.getConnectTimeout());
-
 			if (httpConfig.getProxy()) {
 				HttpHost httpHost = getProxy();
 				requestConfigBuilder.setProxy(httpHost);
 			}
+			
 			// 生成request
 			HttpUriRequest httpUriRequest = requestBuilder.setConfig(requestConfigBuilder.build()).build();
 			httpAsyncClient.execute(httpUriRequest,
-					new FutureCallback<HttpResponse>() {
-
+					callback!=null ? callback : (callback =new FutureCallback<HttpResponse>() {
 						public void failed(Exception exception) {
 							removeProxy();
-							handler.failed(url, exception);
+							handler.failed(parameters, exception);
 						}
 
 						public void completed(final HttpResponse resp) {
@@ -150,7 +162,6 @@ protected Logger logger = LoggerFactory.getLogger(getClass());
 								int statusCode = resp.getStatusLine().getStatusCode();
 								if (statusCode!=200){
 									removeProxy();
-									//logger.warn("HttpResponse StatusCode:"+statusCode);
 									failed(new RuntimeException("HttpResponse StatusCode:"+statusCode));
 									return;
 								}
@@ -166,7 +177,7 @@ protected Logger logger = LoggerFactory.getLogger(getClass());
 									InputStream instream = entity.getContent();
 									try {
 										String content = IOUtils.toString(new BufferedReader(new InputStreamReader(instream,httpConfig.getEncoding())));
-										handler.completed(url, resp,content);
+										handler.completed(parameters, resp,content);
 									} finally {
 										logger.info("download "+url);
 										instream.close();
@@ -175,25 +186,29 @@ protected Logger logger = LoggerFactory.getLogger(getClass());
 								}
 							} catch (Exception e) {
 								removeProxy();
-								handler.failed(url, e);
+								handler.failed(parameters, e);
 							}
 						}
 
 						public void cancelled() {
 							removeProxy();
-							handler.cancelled(url);
+							handler.cancelled(parameters);
 						}
-					});
+					}));
 		} catch (Exception exception) {
-			handler.failed(url, exception);
+			handler.failed(parameters, exception);
 			logger.warn(url + "--异常:"+exception.getMessage());
 		}
 	}
 	
+	public void doGet(final String url, final IHandler handler) {
+		doRequest(get(), url, null, handler);
+	}
 	
 	
-	public String doPost(){
-		return null;
+	
+	public void doPost(final String url,final Map<String, String> parameters,final IHandler handler){
+		doRequest(post(), url, parameters, handler);
 	}
 	
 	private HttpHost getHost(){
@@ -231,9 +246,6 @@ protected Logger logger = LoggerFactory.getLogger(getClass());
 			}
 		}
 	}
-	
-	
-	
 	
 	private void removeProxy(){
 		Map<HttpHost, AtomicInteger> proxyMap = proxryPoolTable.row("proxy");

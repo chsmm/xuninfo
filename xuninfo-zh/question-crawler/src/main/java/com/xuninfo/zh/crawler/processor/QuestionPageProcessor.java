@@ -3,6 +3,7 @@ package com.xuninfo.zh.crawler.processor;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,14 +14,17 @@ import us.codecraft.webmagic.Page;
 import us.codecraft.webmagic.Site;
 import us.codecraft.webmagic.processor.PageProcessor;
 import us.codecraft.webmagic.selector.Html;
+import us.codecraft.webmagic.selector.Json;
 import us.codecraft.webmagic.selector.Selectable;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.xuninfo.zh.config.CrawlerConfig;
 import com.xuninfo.zh.crawler.impl.QuestionsCrawler;
 import com.xuninfo.zh.store.PageStore;
+import com.xuninfo.zh.store.ParameterStore;
 import com.xuninfo.zh.store.RedisStore;
 @Component
 public class QuestionPageProcessor implements Runnable, PageProcessor {
@@ -32,6 +36,10 @@ public class QuestionPageProcessor implements Runnable, PageProcessor {
 	
 	@Autowired
 	RedisStore redisStore;
+	
+	
+	@Autowired
+	ParameterStore parameterStore;
 	
 	@Autowired 
 	private PageStore pageStore;
@@ -61,39 +69,39 @@ public class QuestionPageProcessor implements Runnable, PageProcessor {
 	public void run() {
 		
 		while(!crawler.isDone||!pageStore.pageIsEmpty()){
-			Page page = pageStore.getPage();
-			if(null==page)continue;
-			String url = page.getUrl().get();
-			Html html = page.getHtml();
-			List<Selectable> questionItem = html.xpath("//div[@class=\"question-item\"]").nodes();
-			if(null==questionItem||questionItem.isEmpty()){
-				pageStore.addPageUrl(url);
-				continue;
-			};
+			
+				Page page = pageStore.getPage();
+				if(null==page)continue;
 			try{
-				List<String> answerQuestions = Lists.newArrayList();
-				List<String> notAnswerQuestions = Lists.newArrayList();
-				Map<String, String> questionInfo =null;
-				for(Selectable question : questionItem){
-					String data_timestamp = question.xpath("div/h2/span/@data-timestamp").get();
-					if(limitDate>=Long.parseLong(data_timestamp)){
-						if(!crawler.isDone){
-							crawler.isDone=true;
-						}
-					}
-					questionInfo = Maps.newHashMap();
-					questionInfo.put("question_link", question.xpath("div/h2/a/@href").get());
-					questionInfo.put("question", question.xpath("div/h2/a/text()").get());
-					questionInfo.put("time", data_timestamp);
-					int content = Integer.parseInt(question.xpath("meta/@content").get());
-					String questionInfoJson = JSON.toJSONString(questionInfo);
-					if( content==0) notAnswerQuestions.add(questionInfoJson);
-					else answerQuestions.add(questionInfoJson);
+				List<Selectable> questionItem = null;
+				@SuppressWarnings("unchecked")
+				Map<String, Object> map  = JSON.parseObject(page.getRawText(), Map.class);
+				JSONArray jsonArray = ((JSONArray)map.get("msg"));
+				String questionStr =jsonArray.getString(1);
+				int size = jsonArray.getInteger(0);
+				if(size==0 && StringUtils.isEmpty((questionStr)))return;
+				else if(StringUtils.isEmpty(questionStr)){
+					parameterStore.put(page.getUrl().get());
+					continue;
+				};
+				questionItem = Html.create(questionStr).xpath("div[@class=\"feed-item\"").nodes();
+				if(null==questionItem||questionItem.isEmpty()){
+					parameterStore.put(page.getUrl().get());
+					continue;
 				}
-				if(!answerQuestions.isEmpty())redisStore.addAnswerQuestion(answerQuestions.toArray(new String[0]));
-				if(!notAnswerQuestions.isEmpty())redisStore.addNotAnswerQuestion(notAnswerQuestions.toArray(new String[0]));
+				parameterStore.put(questionItem.get(questionItem.size() - 1).xpath("div/@data-score").get());
+				List<String> urls =Lists.newArrayListWithCapacity(questionItem.size());
+				String questionUrl = null;
+				for (Selectable question : questionItem) {
+					questionUrl= question.xpath("//h2").links().get();
+					if(!questionUrl.startsWith("https://www.zhihu.com")){
+						questionUrl = "https://www.zhihu.com"+questionUrl;
+					}
+					urls.add(questionUrl);
+				}
+				redisStore.addQuestions(urls.toArray(new String[0]));
 			}catch(Exception e){
-				pageStore.addPageUrl(url);
+				
 			}
 		}
 		

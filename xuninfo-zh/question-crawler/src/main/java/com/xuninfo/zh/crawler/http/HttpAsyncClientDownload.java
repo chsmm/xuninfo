@@ -1,10 +1,9 @@
 package com.xuninfo.zh.crawler.http;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
-import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,12 +15,11 @@ import us.codecraft.webmagic.Task;
 import us.codecraft.webmagic.downloader.AbstractDownloader;
 import us.codecraft.webmagic.selector.PlainText;
 
-import com.google.common.base.Joiner;
 import com.xuninfo.zh.config.CrawlerConfig;
 import com.xuninfo.zh.crawler.http.support.HttpAsyncClientSupport;
 import com.xuninfo.zh.crawler.impl.QuestionsCrawler;
-import com.xuninfo.zh.crawler.scheduler.RedisScheduler;
 import com.xuninfo.zh.store.PageStore;
+import com.xuninfo.zh.store.ParameterStore;
 import com.xuninfo.zh.store.RedisStore;
 
 @Component("asyncDownload")
@@ -44,9 +42,12 @@ public class HttpAsyncClientDownload extends AbstractDownloader implements Runna
 	@Autowired 
 	private PageStore pageStore;
 	
+	@Autowired 
+	ParameterStore parameterStore;
+	
 	private String url;
 	
-	private AtomicInteger pageSize;
+	private AtomicBoolean init = new AtomicBoolean(false);
 	
 	private Long downloadSleep;
 	
@@ -56,56 +57,58 @@ public class HttpAsyncClientDownload extends AbstractDownloader implements Runna
 
 	public Page download(final Request request, final Task task) {
 		url = crawlerConfig.getUrl();
-		pageSize = new AtomicInteger(crawlerConfig.getPage());
 		downloadSleep = crawlerConfig.getDownloadSleep();
 		int count = crawlerConfig.getDownloadThreadCount();
 		for (int i = 0; i < count; i++) {
-			crawler.getExecutorService().execute(this);	
+			crawler.getExecutorService().execute(this);
 		}
 		return null;
 	}
 	
-	@Deprecated
-	public void setThread(int threadNum) {
+	
 
-	}
-
-	public void failed(String url,Exception exception) {
+	public void failed(Map<String, String> parameters,Exception exception) {
 		try{
-			pageStore.addPageUrl(url);
-			String error = exception.getMessage();
-			if(StringUtils.isEmpty(error))redisStore.addFailedRequest(Joiner.on(':').join(DateTime.now().toString("yyyy-MM-dd hh:mm:ss"),url));
-			else redisStore.addFailedRequest(Joiner.on(':').join(DateTime.now().toString("yyyy-MM-dd hh:mm:ss"),url,error));
+			parameterStore.put(parameters.get("offset"));
+			//pageStore.addPageUrl(url);
+			//String error = exception.getMessage();
+			//if(StringUtils.isEmpty(error))redisStore.addFailedRequest(Joiner.on(':').join(DateTime.now().toString("yyyy-MM-dd hh:mm:ss"),url));
+			//else redisStore.addFailedRequest(Joiner.on(':').join(DateTime.now().toString("yyyy-MM-dd hh:mm:ss"),url,error));
 		}catch(Exception e){
-			logger.warn(url + "--处理失败url异常:"+exception.getMessage());
+			logger.warn(url + "--failed 异常:"+exception.getMessage());
 		}
 		
 	}
 
-
-
-	public void completed(String url,HttpResponse httpResponse, String respBody) {
+	public void completed(Map<String, String> parameters,HttpResponse httpResponse, String respBody) {
+		if(!init.get()){
+			init.compareAndSet(false, true);
+		}
 		Page page = new Page();
         page.setRawText(respBody);
-        page.setUrl(new PlainText(url));
+        page.setUrl(new PlainText(parameters==null ? null:parameters.get("offset")));
         page.setRequest(new Request(url));
         page.setStatusCode(httpResponse.getStatusLine().getStatusCode());
         pageStore.addPage(page);
 		
 	}
 
-	public void cancelled(String url) {
+	public void cancelled(Map<String, String> parameters) {
 		try{
-			pageStore.addPageUrl(url);
-			redisStore.addFailedRequest(Joiner.on(':').join(DateTime.now().toString("yyyy-MM-dd hh:mm:ss"),url));
+			parameterStore.put(parameters.get("offset"));
+			//pageStore.addPageUrl(url);
+			//redisStore.addFailedRequest(Joiner.on(':').join(DateTime.now().toString("yyyy-MM-dd hh:mm:ss"),url));
 		}catch(Exception e){
-			logger.warn(url + "--处理取消url异常:"+e.getMessage());
+			logger.warn(url + "--cancelled 异常:"+e.getMessage());
 		}
 	}
 
 	public void run() {
-		while(!crawler.isDone || !pageStore.urlIsEmpty()){
-			asyncClientSupport.doGet(pageStore.urlIsEmpty()?url+pageSize.getAndIncrement():pageStore.getPageUrl(), this);	
+		asyncClientSupport.doPost(url, null, this);
+		while(!crawler.isDone || !parameterStore.isEmpty()){
+			Map<String, String> parameters = parameterStore.poll();
+			if(init.get() && null==parameters)continue;
+			asyncClientSupport.doPost(url,parameters, this);
 			try {
 				Thread.sleep(downloadSleep);
 			} catch (InterruptedException e) {
@@ -113,11 +116,8 @@ public class HttpAsyncClientDownload extends AbstractDownloader implements Runna
 			}
 		}	
 	}
-
-
-
 	
-	
-	
+	@Deprecated
+	public void setThread(int threadNum) {}
 
 }
