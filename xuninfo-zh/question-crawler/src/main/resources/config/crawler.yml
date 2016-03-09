@@ -1,6 +1,6 @@
 crawler: 
- url: https://www.zhihu.com/topic/19776749/newest
- pageProcessorThreadCount: 3
+ url: https://www.zhihu.com/topic/19776749/hot
+ pageProcessorThreadCount: 1
  downloadThreadCount: 1
  downloadSleep: 1500
  httpConfig:

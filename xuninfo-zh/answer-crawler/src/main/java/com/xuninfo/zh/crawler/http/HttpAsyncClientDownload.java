@@ -103,24 +103,18 @@ public class HttpAsyncClientDownload extends AbstractDownloader implements Runna
 	}
 
 	public void run() {
-		
-		
-		
-		
-		while(!crawler.isDone || !pageStore.urlIsEmpty()){
-			asyncClientSupport.doGet(pageStore.urlIsEmpty()?url+pageSize.getAndIncrement():pageStore.getPageUrl(), this);	
-			try {
-				Thread.sleep(downloadSleep);
-			} catch (InterruptedException e) {
-				logger.warn("download异常:"+e.getMessage());
+		while(true){
+			String url = redisStore.getQuestions();
+			asyncClientSupport.doGet(url, this);
+			while(!crawler.isDone || !pageStore.urlIsEmpty()){
+				asyncClientSupport.doGet(pageStore.urlIsEmpty()?url+pageSize.getAndIncrement():pageStore.getPageUrl(), this);	
+				try {
+					Thread.sleep(downloadSleep);
+				} catch (InterruptedException e) {
+					logger.warn("download异常:"+e.getMessage());
+				}
 			}
-		}	
+		}
 	}
-
-
-
-	
-	
-	
 
 }

@@ -1,0 +1,6 @@
+# DATASOURCE
+jdbc:
+    dataSourceClassName: com.mysql.jdbc.jdbc2.optional.MysqlDataSource
+    url: amRiYzpteXNxbDovL3JkczkyYW40OW40M25sYmg0MzAzby5teXNxbC5yZHMuYWxpeXVuY3MuY29tL3h1bmluZm8/dXNlVW5pY29kZT10cnVlJmFtcDtjaGFyYXRlckVuY29kaW5nPXV0Zi04
+    username: eHVuaW5mbw==
+    password: Y2hfMTUwMTU5

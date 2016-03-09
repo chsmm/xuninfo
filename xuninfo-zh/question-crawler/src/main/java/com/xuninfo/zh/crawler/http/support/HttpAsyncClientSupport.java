@@ -150,7 +150,7 @@ protected Logger logger = LoggerFactory.getLogger(getClass());
 			// 生成request
 			HttpUriRequest httpUriRequest = requestBuilder.setConfig(requestConfigBuilder.build()).build();
 			httpAsyncClient.execute(httpUriRequest,
-					callback!=null ? callback : (callback =new FutureCallback<HttpResponse>() {
+					new FutureCallback<HttpResponse>() {
 						public void failed(Exception exception) {
 							removeProxy();
 							handler.failed(parameters, exception);
@@ -161,6 +161,7 @@ protected Logger logger = LoggerFactory.getLogger(getClass());
 								
 								int statusCode = resp.getStatusLine().getStatusCode();
 								if (statusCode!=200){
+									logger.info("HttpResponse  statusCode: "+statusCode);
 									removeProxy();
 									failed(new RuntimeException("HttpResponse StatusCode:"+statusCode));
 									return;
@@ -194,7 +195,7 @@ protected Logger logger = LoggerFactory.getLogger(getClass());
 							removeProxy();
 							handler.cancelled(parameters);
 						}
-					}));
+					});
 		} catch (Exception exception) {
 			handler.failed(parameters, exception);
 			logger.warn(url + "--异常:"+exception.getMessage());

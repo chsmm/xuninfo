@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.xuninfo.zh.dao.UserMapper" >
+
+  <insert id="insertQuestion" >
+  		INSERT INTO x_zquestion (q_id,q_title,q_url,q_answerNum,q_visitsCount,q_isTopQuestion,q_topic,q_tags,q_voteNum,q_followers) VALUES
+		<foreach item="item" collection="list"  open="(" separator="," close=")">
+		   #{item.qid}, 
+		   #{item.qtitle}, 
+		   #{item.qurl}, 
+		   #{item.qanswerNum},
+		   #{item.qvisitsCount}, 
+		   #{item.qisTopQuestion}, 
+		   #{item.qtopic}, 
+		   #{item.qtags},
+		   #{item.qvoteNum}, 
+		   #{item.qfollowers}
+		</foreach>	
+  </insert>
+  
+</mapper>

@@ -69,7 +69,9 @@ public class HttpAsyncClientDownload extends AbstractDownloader implements Runna
 
 	public void failed(Map<String, String> parameters,Exception exception) {
 		try{
-			parameterStore.put(parameters.get("offset"));
+			if(parameters!=null){
+				parameterStore.put(parameters.get("offset"));
+			}
 			//pageStore.addPageUrl(url);
 			//String error = exception.getMessage();
 			//if(StringUtils.isEmpty(error))redisStore.addFailedRequest(Joiner.on(':').join(DateTime.now().toString("yyyy-MM-dd hh:mm:ss"),url));
@@ -86,7 +88,7 @@ public class HttpAsyncClientDownload extends AbstractDownloader implements Runna
 		}
 		Page page = new Page();
         page.setRawText(respBody);
-        page.setUrl(new PlainText(parameters==null ? null:parameters.get("offset")));
+        page.setUrl(new PlainText(parameters==null ? "":parameters.get("offset")));
         page.setRequest(new Request(url));
         page.setStatusCode(httpResponse.getStatusLine().getStatusCode());
         pageStore.addPage(page);
@@ -95,7 +97,9 @@ public class HttpAsyncClientDownload extends AbstractDownloader implements Runna
 
 	public void cancelled(Map<String, String> parameters) {
 		try{
-			parameterStore.put(parameters.get("offset"));
+			if(parameters!=null){
+				parameterStore.put(parameters.get("offset"));
+			}
 			//pageStore.addPageUrl(url);
 			//redisStore.addFailedRequest(Joiner.on(':').join(DateTime.now().toString("yyyy-MM-dd hh:mm:ss"),url));
 		}catch(Exception e){
@@ -104,15 +108,25 @@ public class HttpAsyncClientDownload extends AbstractDownloader implements Runna
 	}
 
 	public void run() {
-		asyncClientSupport.doPost(url, null, this);
+		while(!init.get()){
+			if(!init.get()){
+				asyncClientSupport.doPost(url, null, this);
+				try {
+					Thread.sleep(5000l);
+				} catch (InterruptedException e) {
+					logger.warn("download异常:"+e.getMessage());
+				}
+			}	
+		}
 		while(!crawler.isDone || !parameterStore.isEmpty()){
 			Map<String, String> parameters = parameterStore.poll();
-			if(init.get() && null==parameters)continue;
-			asyncClientSupport.doPost(url,parameters, this);
-			try {
-				Thread.sleep(downloadSleep);
-			} catch (InterruptedException e) {
-				logger.warn("download异常:"+e.getMessage());
+			if(null!=parameters){
+				asyncClientSupport.doPost(url,parameters, this);
+				try {
+					Thread.sleep(downloadSleep);
+				} catch (InterruptedException e) {
+					logger.warn("download异常:"+e.getMessage());
+				}
 			}
 		}	
 	}
