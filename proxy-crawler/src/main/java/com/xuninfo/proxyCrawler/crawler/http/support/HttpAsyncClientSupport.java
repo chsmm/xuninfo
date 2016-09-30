@@ -3,6 +3,7 @@ package com.xuninfo.proxyCrawler.crawler.http.support;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.List;
 import java.util.Map;
 
 import javax.net.ssl.HostnameVerifier;
@@ -10,6 +11,7 @@ import javax.net.ssl.SSLContext;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -25,6 +27,7 @@ import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
+import org.apache.http.message.BasicHeader;
 import org.apache.http.nio.conn.NoopIOSessionStrategy;
 import org.apache.http.nio.conn.SchemeIOSessionStrategy;
 import org.apache.http.nio.conn.ssl.SSLIOSessionStrategy;
@@ -38,18 +41,21 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.google.common.collect.Lists;
 import com.xuninfo.proxyCrawler.config.CrawlerConfig;
 import com.xuninfo.proxyCrawler.config.HttpConfig;
 import com.xuninfo.proxyCrawler.crawler.http.IHandler;
-import com.xuninfo.proxyCrawler.store.RedisStore;
+import com.xuninfo.proxyCrawler.store.GuavaStore;
 
 @Component
 public class HttpAsyncClientSupport implements InitializingBean, DisposableBean {
 
 	protected final Logger logger = LoggerFactory.getLogger(getClass());
 
+
+	
 	@Autowired
-	private RedisStore redisStore;
+	GuavaStore<String, String> guavaStore;
 
 	@Autowired
 	private CrawlerConfig crawlerConfig;
@@ -60,6 +66,13 @@ public class HttpAsyncClientSupport implements InitializingBean, DisposableBean 
 
 	public String getProxyHost() {
 		return proxyHostLocal.get();
+	}
+	
+	public void afterPropertiesSet() throws Exception {
+		init();
+		if (httpAsyncClient != null) {
+			httpAsyncClient.start();
+		}
 	}
 
 	private void init() {
@@ -80,66 +93,66 @@ public class HttpAsyncClientSupport implements InitializingBean, DisposableBean 
 			IOReactorConfig ioReactorConfig = IOReactorConfig
 					.custom()
 					.setIoThreadCount(
-							Runtime.getRuntime().availableProcessors())
+							Runtime.getRuntime().availableProcessors()*4)
 					.setConnectTimeout(httpConfig.getConnectTimeout())
 					.setSoTimeout(httpConfig.getConnectTimeout()).build();
 			// 设置连接池大小
 			ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(
 					ioReactorConfig);
+			
 			PoolingNHttpClientConnectionManager connectionManager = new PoolingNHttpClientConnectionManager(
 					ioReactor, null, sessionStrategyRegistry, null);
 			connectionManager.setDefaultMaxPerRoute(httpConfig.getConnectMaxTotal());
 	        connectionManager.setMaxTotal(httpConfig.getConnectMaxTotal());
-			httpAsyncClient = HttpAsyncClients.custom()
-					.setConnectionManager(connectionManager).build();
+	      
+	        //默认头部
+	        List<Header> defaultHeaders = Lists.newArrayList();
+	        for (Map.Entry<String, String> headerEntry : httpConfig.getHeaders().entrySet()) {
+	        	defaultHeaders.add(new BasicHeader(headerEntry.getKey(),headerEntry.getValue()));
+			}
+			httpAsyncClient = HttpAsyncClients.custom().setDefaultHeaders(defaultHeaders).setConnectionManager(connectionManager).build();
 		} catch (Exception e) {
 			logger.error("初始化 HttpAsyncClients 失败", e);
 		}
 	}
 
-	public void afterPropertiesSet() throws Exception {
-		init();
-		if (httpAsyncClient != null) {
-			httpAsyncClient.start();
+	
+	/**
+	 * 获取请求配置
+	 * @param httpConfig
+	 * @return
+	 */
+	private RequestConfig getRequestConfig(final HttpConfig httpConfig)
+	{
+		//设置基本信息
+		RequestConfig.Builder requestConfigBuilder = RequestConfig.custom()
+				.setConnectionRequestTimeout(httpConfig.getConnectTimeout())
+				.setSocketTimeout(httpConfig.getConnectTimeout())
+				.setConnectTimeout(httpConfig.getConnectTimeout());
+		//设置代理
+		if (httpConfig.getProxy()) {
+			HttpHost hots = getProxy();
+			if (hots != null) {
+				requestConfigBuilder.setProxy(hots);
+			}
 		}
-
+		return requestConfigBuilder.build();
 	}
 
-	public void destroy() throws Exception {
-		if (httpAsyncClient != null) {
-			httpAsyncClient.close();
-		}
-	}
-
+	
 	public void doGet(final String url,final IHandler handler) {
 		try {
 			final HttpConfig httpConfig = crawlerConfig.getHttpConfig();
 			// 设置url与请求头信息
 			RequestBuilder requestBuilder = RequestBuilder.get().setUri(url);
-			for (Map.Entry<String, String> headerEntry : httpConfig.getHeaders().entrySet()) {
-				requestBuilder.addHeader(headerEntry.getKey(),
-						headerEntry.getValue());
-			}
-			// 配置访问限制
-			RequestConfig.Builder requestConfigBuilder = RequestConfig
-					.custom()
-					.setConnectionRequestTimeout(httpConfig.getConnectTimeout())
-					.setSocketTimeout(httpConfig.getConnectTimeout())
-					.setConnectTimeout(httpConfig.getConnectTimeout());
-
-			if (httpConfig.getProxy()) {
-				HttpHost hots = getProxy();
-				if (hots != null) {
-					requestConfigBuilder.setProxy(hots);
-				}
-			}
+			RequestConfig config  = getRequestConfig(httpConfig);
+			final HttpHost proxyHost = config.getProxy();
+			
 			// 生成request
-			HttpUriRequest httpUriRequest = requestBuilder.setConfig(
-					requestConfigBuilder.build()).build();
+			HttpUriRequest httpUriRequest = requestBuilder.setConfig(config).build();
 			httpAsyncClient.execute(httpUriRequest,
 					new FutureCallback<HttpResponse>() {
-
-						public void failed(Exception exception) {
+						public void failed(Exception exception) {							
 							handler.failed(url, exception);
 						}
 
@@ -147,33 +160,19 @@ public class HttpAsyncClientSupport implements InitializingBean, DisposableBean 
 							// 这里使用EntityUtils.toString()方式时会大概率报错，原因：未接受完毕，链接已关
 							try {
 								int statusCode = resp.getStatusLine().getStatusCode();
-								if (statusCode!=200){
+ 								if (statusCode!=200){
 									return;
 								}
+ 								if(proxyHost!=null) guavaStore.put("validProxy", proxyHost.toHostString());
+ 								System.out.println("validProxy--- " + guavaStore.getValues("validProxy"));
 								HttpEntity entity = resp.getEntity();
 								if (entity != null) {
 									final InputStream instream = entity.getContent();
 									try {
-										String content = IOUtils.toString(new BufferedReader(new InputStreamReader(instream,httpConfig.getEncoding())));
+										String content = IOUtils.toString(new BufferedReader(new InputStreamReader(instream,httpConfig.getEncoding())));								
 										handler.completed(url, resp,content);
-								/*		if (httpConfig
-												.getRetryStatusCode()
-												.contains(
-														resp.getStatusLine()
-																.getStatusCode()))
-											return;
-										else if (httpConfig
-												.getRetryStatusCode()
-												.contains(
-														resp.getStatusLine()
-																.getStatusCode()))
-											failed(new RuntimeException(content));
-										else
-											handler.completed(url, resp,
-													content);*/
-
 									} finally {
-										instream.close();
+										IOUtils.closeQuietly(instream);
 										EntityUtils.consume(entity);
 									}
 								}
@@ -198,26 +197,20 @@ public class HttpAsyncClientSupport implements InitializingBean, DisposableBean 
 			final HttpConfig httpConfig = crawlerConfig.getHttpConfig();
 			// 设置url与请求头信息
 			RequestBuilder requestBuilder = RequestBuilder.get().setUri(url);
-			for (Map.Entry<String, String> headerEntry : httpConfig.getHeaders().entrySet()) {
-				requestBuilder.addHeader(headerEntry.getKey(),
-						headerEntry.getValue());
-			}
-			// 配置访问限制
-			RequestConfig.Builder requestConfigBuilder = RequestConfig
-					.custom()
-					.setConnectionRequestTimeout(httpConfig.getConnectTimeout())
-					.setSocketTimeout(httpConfig.getConnectTimeout())
-					.setConnectTimeout(httpConfig.getConnectTimeout())
-					.setProxy(proxyHost);
+		
 
 			// 生成request
-			HttpUriRequest httpUriRequest = requestBuilder.setConfig(
-					requestConfigBuilder.build()).build();
+			HttpUriRequest httpUriRequest = requestBuilder.setConfig(getRequestConfig(httpConfig)).build();
 			httpAsyncClient.execute(httpUriRequest,
 					new FutureCallback<HttpResponse>() {
 
 						public void failed(Exception exception) {
-							handler.failed(url, exception);
+							try {	
+								proxyHostLocal.set(proxyHost.toHostString());
+								handler.failed(url, exception);
+							}finally{
+								proxyHostLocal.remove();
+							}
 						}
 
 						public void completed(final HttpResponse resp) {
@@ -226,15 +219,12 @@ public class HttpAsyncClientSupport implements InitializingBean, DisposableBean 
 
 								HttpEntity entity = resp.getEntity();
 								if (entity != null) {
-									final InputStream instream = entity
-											.getContent();
+									final InputStream instream = entity.getContent();
 									try {
-										proxyHostLocal.set(proxyHost
-												.toHostString());
+										proxyHostLocal.set(proxyHost.toHostString());
 										String content = IOUtils.toString(new BufferedReader(
 												new InputStreamReader(instream,
-														httpConfig
-																.getEncoding())));
+														httpConfig.getEncoding())));
 										if (httpConfig
 												.getRetryStatusCode()
 												.contains(
@@ -263,7 +253,13 @@ public class HttpAsyncClientSupport implements InitializingBean, DisposableBean 
 						}
 
 						public void cancelled() {
-							handler.cancelled(url);
+							try {	
+								proxyHostLocal.set(proxyHost.toHostString());
+								handler.cancelled(url);
+							}finally{
+								proxyHostLocal.remove();
+							}
+							
 						}
 					});
 		} catch (Exception e) {
@@ -276,12 +272,17 @@ public class HttpAsyncClientSupport implements InitializingBean, DisposableBean 
 	}
 
 	private HttpHost getProxy() {
-		String hostStr = redisStore.getValidProxy();
-		if (StringUtils.isEmpty(hostStr))
-			return null;
+		String hostStr =guavaStore.pop("validProxy");
+		if (StringUtils.isEmpty(hostStr)) return null;
 		String[] hp = hostStr.split(":");
 		HttpHost httpHost = new HttpHost(hp[0], Integer.parseInt(hp[1]));
 		return httpHost;
+	}
+	
+	public void destroy() throws Exception {
+		if (httpAsyncClient != null) {
+			httpAsyncClient.close();
+		}
 	}
 
 }

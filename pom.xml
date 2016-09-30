@@ -10,6 +10,10 @@
   <modules>
 		<module>proxy-crawler</module>
 		<module>xuninfo-zh</module>
+		<module>homeCornerSpider</module>
+		<module>spiderWeb</module>
+		<module>spiderNest</module>
+		<module>parser</module>
   </modules>
   
 </project>

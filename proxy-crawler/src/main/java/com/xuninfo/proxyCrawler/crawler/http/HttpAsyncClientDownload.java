@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
-import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,10 +14,9 @@ import us.codecraft.webmagic.Request;
 import us.codecraft.webmagic.Task;
 import us.codecraft.webmagic.downloader.AbstractDownloader;
 
-import com.google.common.base.Joiner;
+import com.xuninfo.proxyCrawler.crawler.ProxyCrawler;
 import com.xuninfo.proxyCrawler.crawler.http.support.HttpAsyncClientSupport;
-import com.xuninfo.proxyCrawler.crawler.impl.ProxyCrawler;
-import com.xuninfo.proxyCrawler.store.RedisStore;
+import com.xuninfo.proxyCrawler.store.GuavaStore;
 
 @Component("asyncDownload")
 public class HttpAsyncClientDownload extends AbstractDownloader implements Runnable,IHandler {
@@ -31,8 +29,9 @@ public class HttpAsyncClientDownload extends AbstractDownloader implements Runna
 	@Autowired
 	protected ProxyCrawler crawler;
 	
+	
 	@Autowired
-	private RedisStore redisStore;
+	GuavaStore<String, String> guavaStore;
 	
 	
 	public HttpAsyncClientDownload() {
@@ -61,7 +60,7 @@ public class HttpAsyncClientDownload extends AbstractDownloader implements Runna
 	}
 
 
-	public void completed(String url,HttpResponse httpResponse, String respBody) {
+	public void completed(String url,HttpResponse httpResponse, String respBody) {		
 		final Page page = new Page();
 		page.setRawText(respBody);
 		page.setRequest(new Request(url));

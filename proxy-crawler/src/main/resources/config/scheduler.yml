@@ -4,6 +4,6 @@ scheduler:
   schedulerBeanName: proxyCrawler
   schedulerMethod: doStart
  verify:
-  cron: 0/1 * * * * ?
+  cron: 0 */1 * * * ?
   schedulerBeanName: proxyVerify
   schedulerMethod: doVerify

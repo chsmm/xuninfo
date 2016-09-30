@@ -18,10 +18,9 @@ import us.codecraft.webmagic.processor.PageProcessor;
 import us.codecraft.webmagic.selector.Html;
 
 import com.google.common.collect.Maps;
-import com.xuninfo.proxyCrawler.config.CrawlerConfig;
 import com.xuninfo.proxyCrawler.config.ProcessorConfig;
-import com.xuninfo.proxyCrawler.crawler.impl.ProxyCrawler;
-import com.xuninfo.proxyCrawler.store.RedisStore;
+import com.xuninfo.proxyCrawler.crawler.ProxyCrawler;
+import com.xuninfo.proxyCrawler.store.GuavaStore;
 @Component
 public class ProxyWebPageProcessor implements  PageProcessor,ApplicationContextAware {
 	
@@ -36,9 +35,9 @@ public class ProxyWebPageProcessor implements  PageProcessor,ApplicationContextA
 	@Autowired 
 	ProxyCrawler crawler;
 	
-	
 	@Autowired
-	RedisStore redisStore;
+	GuavaStore<String, String> guavaStore;
+	
 	
 	private Map<String, ProcessorStrategy> processorStrategys = Maps.newConcurrentMap();;
 	
@@ -65,7 +64,9 @@ public class ProxyWebPageProcessor implements  PageProcessor,ApplicationContextA
 			if(processorStrategys.containsKey(url)){
 				List<String> hosts = processorStrategys.get(url).processor(html,url);
 				if(!hosts.isEmpty()){
-					redisStore.addHttpProxy(hosts.toArray(new String[0]));
+					guavaStore.putAll("proxys", hosts.toArray(new String[0]));
+					System.out.println(hosts);
+					//redisStore.addHttpProxy(hosts.toArray(new String[0]));
 				}
 			}
 		}

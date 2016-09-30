@@ -72,7 +72,6 @@ public abstract class AbstractCrawler extends AbstractService implements Crawler
 
 	@Override
 	protected void doStart() {
-
 		logger.info("Start Proxy Crawler  At Time:"+DateTime.now().toString("yyyy-MM-dd hh:mm:ss"));
 		doInternalStart();
 	}

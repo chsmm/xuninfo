@@ -18,7 +18,4 @@ public class ProcessorConfig {
 		this.processorStrategys = processorStrategys;
 	}
 
-	
-	
-	
 }

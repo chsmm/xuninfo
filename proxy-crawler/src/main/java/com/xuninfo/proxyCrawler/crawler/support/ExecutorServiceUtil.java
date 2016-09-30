@@ -20,7 +20,7 @@ public class ExecutorServiceUtil {
 		tmepservice.setThreadFactory(new ThreadFactory() {
 			private AtomicInteger atomicInteger = new AtomicInteger(0);
 			public Thread newThread(Runnable r) {
-				return new Thread(r, "questionsCrawler--exc--"+atomicInteger.incrementAndGet());
+				return new Thread(r, "proxyCrawler--exc--"+atomicInteger.incrementAndGet());
 			}
 		});
 		service = tmepservice;
